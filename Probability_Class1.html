@@ -1,0 +1,147 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Probability — Class 1</title>
+<style>
+:root{--bg:#070b17;--c:#0f172a;--b:#1e2a4a;--t:#e6edf8;--m:#8fa3c7;--cy:#22d3ee;--bl:#60a5fa;--pu:#a78bfa;box-sizing:border-box;padding-top:env(safe-area-inset-top,0)}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:radial-gradient(circle at 20% 0,#12204a,var(--bg) 55%);color:var(--t);font:clamp(16px,1.6vw,24px)/1.5 system-ui,Segoe UI,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+#bar{height:4px;background:var(--b)}#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cy),var(--pu));transition:width .3s}
+#stage{flex:1;position:relative;min-height:0}
+.slide{position:absolute;inset:0;padding:2vh 4vw;overflow:auto;opacity:0;visibility:hidden;transform:translateX(24px);transition:.35s}
+.slide.on{opacity:1;visibility:visible;transform:none}
+.t{margin:0 0 .6em;font-size:1.7em;background:linear-gradient(90deg,var(--cy),var(--pu));-webkit-background-clip:text;background-clip:text;color:transparent}
+.grid{display:grid;grid-template-columns:1fr;gap:1.2em}.grid.v{grid-template-columns:1.1fr 1fr}
+@media(max-width:800px){.grid.v{grid-template-columns:1fr}}
+.card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:.9em 1.2em;margin:0 0 .8em}
+.fm{font-size:1.2em;text-align:center;border-color:var(--bl);box-shadow:0 0 24px #22d3ee14}
+.ans{border-color:var(--pu);background:#1a1540}.ans:before{content:"ANSWERS";display:block;font-size:.6em;letter-spacing:.15em;color:var(--pu);margin-bottom:.3em}
+.noans .ans{display:none}.q:before{content:"QUESTIONS";display:block;font-size:.6em;letter-spacing:.15em;color:var(--cy);margin-bottom:.3em}
+ul,ol{padding-left:1.2em;margin:.2em 0}li{margin:.3em 0}
+.hero{text-align:center;padding-top:6vh}.hero h1{font-size:2.3em;margin:.2em 0}.hero h2{color:var(--bl);font-weight:400}.k{color:var(--cy);letter-spacing:.2em;text-transform:uppercase;font-size:.7em}.by{font-size:1.4em;color:var(--pu);margin:1em 0 0}
+.viz{position:relative;min-height:260px;height:100%;border:1px solid var(--b);border-radius:14px;background:#050914;overflow:hidden}
+#cv{width:100%;height:100%;display:block}
+.map{display:grid;grid-template-columns:repeat(3,1fr);gap:.8em}.map .card{text-align:center;margin:0}.map small{display:block;color:var(--cy)}
+@media(max-width:800px){.map{grid-template-columns:1fr 1fr}}
+table{width:100%;border-collapse:collapse}td,th{border:1px solid var(--b);padding:.5em .8em;text-align:left}th{background:var(--c);color:var(--cy)}
+#nav{display:flex;gap:.5em;align-items:center;justify-content:center;padding:.6em 1em calc(.6em + env(safe-area-inset-bottom,0));background:#0a1022;border-top:1px solid var(--b);flex-wrap:wrap}
+button{font:inherit;font-size:.8em;background:var(--c);color:var(--t);border:1px solid var(--b);border-radius:10px;padding:.45em .9em;cursor:pointer}button:hover{border-color:var(--cy)}
+#ct{min-width:4.5em;text-align:center;color:var(--m)}
+input[type=range]{width:100%;accent-color:var(--cy)}.lb{color:var(--cy);display:block;margin-bottom:.3em}
+#ov{position:fixed;inset:0;background:#050914ee;z-index:9;display:none;padding:4vh 4vw;overflow:auto}#ov.on{display:block}
+#ov div{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.8em}#ov button{text-align:left;padding:1em}#ov b{color:var(--cy)}
+:fullscreen body,.fs{font-size:clamp(18px,2vw,30px)}
+</style></head><body>
+<div id="bar"><i></i></div><div id="stage"></div>
+<div id="nav"><button id="hm" title="Overview (O)">⊞ Overview</button><button id="pv">◀ Prev</button><span id="ct"></span><button id="nx">Next ▶</button><button id="ar" hidden>Hide answers</button><button id="fs">⛶ Full screen</button></div>
+<div id="ov"><h2 class="t">Chapter overview</h2><div id="og"></div></div>
+<div class="viz" id="vz" style="display:none"><canvas id="cv"></canvas></div>
+<script>
+const $=i=>document.getElementById(i),C=h=>`<div class="card">${h}</div>`,FM=h=>`<div class="card fm">${h}</div>`,Q=h=>`<div class="card q">${h}</div>`,A=h=>`<div class="card ans">${h}</div>`;
+const P='#050914',BL='#60a5fa',PU='#a78bfa',CY='#22d3ee',OR='#fb923c',YE='#facc15',MU='#8fa3c7';
+let M=0,T=0,i=0,cur=null,g;
+// ---------- canvas helpers (virtual 400 x 300) ----------
+const tx=(s,px,py,c='#e6edf8',z=18,a='center')=>{g.fillStyle=c;g.font=z+'px system-ui';g.textAlign=a;g.textBaseline='middle';g.fillText(s,px,py)};
+const cir=(cx,cy,r)=>{g.beginPath();g.arc(cx,cy,r,0,7)};
+const ring=(cx,cy,r,c,w=3)=>{g.strokeStyle=c;g.lineWidth=w;cir(cx,cy,r);g.stroke()};
+const al=T=>'rgba(34,211,238,'+(.35+.15*Math.sin(T*3))+')';
+const frame=()=>{g.strokeStyle='#4b5b85';g.lineWidth=2;g.strokeRect(20,20,360,260);tx('S',366,36,MU)};
+function venn(m,d=45,r=75){const ax=200-d,bx=200+d,y=150;frame();g.fillStyle=al(T);
+ if(m=='A'){cir(ax,y,r);g.fill()}if(m=='B'){cir(bx,y,r);g.fill()}
+ if(m=='comp'){g.fillRect(20,20,360,260);cir(ax,y,r);g.fillStyle=P;g.fill()}
+ if(m=='uni'){cir(ax,y,r);g.fill();cir(bx,y,r);g.fill()}
+ if(m=='int'){g.save();cir(ax,y,r);g.clip();cir(bx,y,r);g.fill();g.restore()}
+ if(m=='diff'){cir(ax,y,r);g.fill();cir(bx,y,r);g.fillStyle=P;g.fill()}
+ ring(ax,y,r,BL);ring(bx,y,r,PU);tx('A',ax-r*.7,y-r*.85,BL,22);tx('B',bx+r*.7,y-r*.85,PU,22)}
+function dies(hl,sel){for(let k=0;k<6;k++){const x0=25+58*k,on=hl.includes(k+1);g.fillStyle=on?'#0e3a4a':'#0f172a';g.strokeStyle=on?CY:MU;g.lineWidth=3;g.beginPath();g.roundRect(x0,110,46,46,8);g.fill();g.stroke();tx(k+1,x0+23,134,on?CY:'#e6edf8',24)}
+ if(sel){tx('▼',25+58*(sel-1)+23,92,OR,24)}}
+const ell=(hl)=>{g.fillStyle='#0f172a';g.strokeStyle=MU;g.lineWidth=3;g.beginPath();g.ellipse(200,150,170,115,0,0,7);g.fill();g.stroke();
+ [['HH',140,100],['HT',260,100],['TH',140,200],['TT',260,200]].forEach(p=>{const on=hl&&hl.includes(p[0]);fillP(p[1],p[2],on);tx(p[0],p[1],p[2]-18,on?OR:'#e6edf8',18)})};
+const fillP=(px,py,on)=>{g.fillStyle=on?OR:'#e6edf8';cir(px,py,6);g.fill()};
+// ---------- slide visuals ----------
+const vTitle=()=>{ell([]);['HH','HT','TH','TT'].forEach((l,k)=>{const a=T*.7+k*Math.PI/2,px=200+90*Math.cos(a),py=150+55*Math.sin(a);fillP(px,py,k==Math.floor(T/1.2)%4);tx(l,px,py-16,k==Math.floor(T/1.2)%4?OR:MU,16)})};
+const vEvent=()=>{ell(['HT','TH']);g.save();g.translate(200,150);g.rotate(-.58);g.strokeStyle=OR;g.fillStyle='rgba(251,146,60,'+(.12+.08*Math.sin(T*3))+')';g.lineWidth=4;g.beginPath();g.ellipse(0,0,150,34,0,0,7);g.fill();g.stroke();g.restore();tx('E',330,95,OR,24)};
+const vOcc=()=>{dies([1,2,3],M);tx('E = {1, 2, 3}',200,200,CY,20);tx(M<4?'E has occurred':'E has not occurred',200,240,M<4?CY:OR,22)};
+const vTypes=()=>{const ph=Math.floor(T/2.2)%4,k=Math.floor(T)%6+1,sets=[[],[k],[1,2,3],[1,2,3,4,5,6]],lb=['Impossible event: ∅','Simple event: one point','Compound event: several points','Sure event: S'];
+ dies(sets[ph]);tx(lb[ph],200,200,ph==0?OR:CY,22)};
+const OPS=['A','B','comp','uni','int','diff'],OL=['A','B','A′   (not A)','A ∪ B   (A or B)','A ∩ B   (A and B)','A − B   (A but not B)'];
+const vAlg=()=>{venn(OPS[M]);tx(OL[M],200,290,YE,18)};
+const vEx1=()=>{const ph=Math.floor(T/2.2)%4,m=['uni','int','diff','comp'][ph],l=['A ∪ B = {1,2,3,5}','A ∩ B = {3,5}','A − B = {2}','A′ = {1,4,6}'][ph];
+ venn(m);[['2',120,150],['3',200,132],['5',200,168],['1',280,150],['4',50,50],['6',350,250]].forEach(p=>tx(p[0],p[1],p[2],'#e6edf8',22));tx(l,200,290,YE,18)};
+const vGrid=()=>{const x0=80,y0=30,c=40;for(let r=1;r<=6;r++)for(let q=1;q<=6;q++){const A_=r==6,B_=r+q>=11,I=A_&&B_;let f=null;if(M>=1&&A_)f='rgba(34,211,238,.45)';if(M>=2&&B_)f='rgba(250,204,21,.6)';if(M>=3&&I)f='rgba(251,146,60,'+(.8+.2*Math.sin(T*4))+')';if(f){g.fillStyle=f;g.fillRect(x0+(q-1)*c,y0+(r-1)*c,c,c)}}
+ g.strokeStyle=MU;g.lineWidth=1;for(let k=0;k<=6;k++){g.beginPath();g.moveTo(x0,y0+k*c);g.lineTo(x0+6*c,y0+k*c);g.moveTo(x0+k*c,y0);g.lineTo(x0+k*c,y0+6*c);g.stroke()}
+ for(let k=1;k<=6;k++){tx(k,x0-14,y0+(k-.5)*c,MU,14);tx(k,x0+(k-.5)*c,y0-12,MU,14)}tx('1st',x0-48,y0+120,MU,13);tx('2nd throw',x0+120,12,MU,13)};
+const vMe=()=>{const d=M,r=55,ov=2*d<2*r;frame();g.fillStyle='rgba(251,146,60,.7)';if(ov){g.save();cir(200-d,150,r);g.clip();cir(200+d,150,r);g.fill();g.restore()}ring(200-d,150,r,BL);ring(200+d,150,r,PU);tx('A',200-d-r*.6,150,BL,22);tx('B',200+d+r*.6,150,PU,22);tx(ov?'A ∩ B ≠ ∅: not mutually exclusive':'A ∩ B = ∅: mutually exclusive',200,266,ov?OR:CY,18)};
+const vExh=()=>{const st=Math.floor(T/1.6)%5,cl=st==4?[1,2,3,4,5,6]:[];const bx=(a,b,y1,y2,c,l,ly)=>{g.strokeStyle=c;g.lineWidth=3;g.beginPath();g.roundRect(25+58*a-8,y1,58*(b-a)+46+16,y2-y1,12);g.stroke();tx(l,25+58*a+(58*(b-a)+46)/2,ly,c,20)};
+ dies(cl);if(st>=1)bx(0,2,98,168,BL,'A',182);if(st>=2)bx(2,3,86,180,PU,'B',72);if(st>=3)bx(4,5,98,168,OR,'C',182);tx(st==4?'A ∪ B ∪ C = S':'',200,240,YE,22)};
+const vPie=()=>{const sg=[[0,.2,'F',OR],[.2,.4,'D',YE],[.4,1,'P',CY]],h=Math.floor(T/1.6)%3;sg.forEach((s,k)=>{const a0=-Math.PI/2+6.2832*s[0],a1=-Math.PI/2+6.2832*s[1],mid=(a0+a1)/2;g.globalAlpha=k==h?1:.35;g.fillStyle=s[3];g.beginPath();g.moveTo(200,140);g.arc(200,140,k==h?112:104,a0,a1);g.closePath();g.fill();g.globalAlpha=1;tx(s[2],200+62*Math.cos(mid),140+62*Math.sin(mid),P,26)});
+ tx(['Fails','Distinction','Passes'][h]+' — exactly one of F, D, P occurs',200,276,YE,16)};
+const vSpin=()=>{const inA=n=>n%2==0,inB=n=>n>5,f=[inA,inB,n=>inA(n)&&inB(n),n=>inA(n)||inB(n),n=>inA(n)&&!inB(n)][M],lb=['A: even','B: greater than 5','A ∩ B = {6, 8}','A ∪ B = {2, 4, 6, 7, 8}','A − B = {2, 4}'][M];
+ for(let n=1;n<=8;n++){const a0=-Math.PI/2+(n-1)*Math.PI/4,a1=a0+Math.PI/4;g.fillStyle=f(n)?'rgba(251,146,60,'+(.7+.3*Math.sin(T*3))+')':'#0f172a';g.strokeStyle=MU;g.lineWidth=2;g.beginPath();g.moveTo(200,145);g.arc(200,145,110,a0,a1);g.closePath();g.fill();g.stroke();tx(n,200+75*Math.cos(a0+Math.PI/8),145+75*Math.sin(a0+Math.PI/8),'#e6edf8',24)}
+ const a=T*1.3;g.strokeStyle=YE;g.lineWidth=4;g.beginPath();g.moveTo(200,145);g.lineTo(200+90*Math.cos(a),145+90*Math.sin(a));g.stroke();tx(lb,200,282,YE,18)};
+
+const rn=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v)},rv=n=>1+Math.floor(rn(n)*6);
+const vExp=()=>{const sec=Math.floor(T*.7),ph=T*.7-sec,v=ph<.35?1+Math.floor(T*25)%6:rv(sec);
+ g.fillStyle='#0f172a';g.strokeStyle=ph<.35?OR:CY;g.lineWidth=4;g.beginPath();g.roundRect(150,50,100,100,16);g.fill();g.stroke();
+ [[-25,-25],[25,-25],[0,0],[-25,25],[25,25],[-25,0],[25,0]].forEach((o,k)=>{const on=[[2],[0,4],[0,2,4],[0,1,3,4],[0,1,2,3,4],[0,1,3,4,5,6]][v-1].includes(k);if(on){g.fillStyle='#e6edf8';cir(200+o[0],100+o[1],8);g.fill()}});
+ tx(ph<.35?'rolling…':'Outcome: '+v,200,180,ph<.35?OR:CY,22);tx('Previous outcomes:',200,222,MU,15);
+ for(let k=1;k<=6;k++)tx(rv(sec-k),80+k*40,250,'#e6edf8',22);tx('Next result? Cannot be predicted.',200,285,YE,15)};
+const SSN=['Toss one coin','Toss two coins','Roll one die','Toss three coins'],SSP=[['H','T'],['HH','HT','TH','TT'],[1,2,3,4,5,6],['HHH','HHT','HTH','HTT','THH','THT','TTH','TTT']];
+const vSS=()=>{const pts=SSP[M],n=pts.length,cols=n<=2?n:n==4?2:n==6?3:4,rows=Math.ceil(n/cols);
+ g.fillStyle='#0f172a';g.strokeStyle=MU;g.lineWidth=3;g.beginPath();g.ellipse(200,135,175,110,0,0,7);g.fill();g.stroke();tx('S',350,50,MU,20);
+ pts.forEach((q,k)=>{const c=k%cols,r=Math.floor(k/cols),px=200+(c-(cols-1)/2)*(n>6?80:70),py=135+(r-(rows-1)/2)*52,on=k==Math.floor(T*1.5)%n;g.fillStyle=on?OR:'#e6edf8';cir(px,py,on?8:6);g.fill();tx(q,px,py-18,on?OR:'#e6edf8',18)});
+ tx('S = set of all outcomes,  n(S) = '+n,200,270,YE,18)};
+const vSet=()=>{const ph=Math.floor(T/2.5)%4,sets=[[],[2,4,6],[1,2,3],[1,2,3,4,5,6]],lb=['∅ ⊆ S  (empty set)','A = {2, 4, 6}  ⊆ S','B = {1, 2, 3}  ⊆ S','S ⊆ S'];
+ g.fillStyle='#0f172a';g.strokeStyle=MU;g.lineWidth=3;g.beginPath();g.ellipse(200,130,170,105,0,0,7);g.fill();g.stroke();tx('S = {1,…,6}',200,38,MU,15);
+ for(let k=1;k<=6;k++){const px=110+((k-1)%3)*90,py=95+Math.floor((k-1)/3)*70,on=sets[ph].includes(k);if(on){g.strokeStyle=OR;g.lineWidth=3;cir(px,py,20);g.stroke()}tx(k,px,py,on?OR:'#e6edf8',24)}
+ tx(lb[ph],200,265,YE,20);tx(ph==1?'2 ∈ A,  3 ∉ A':ph==2?'3 ∈ B,  5 ∉ B':'',200,288,MU,15)};
+// ---------- slides ----------
+const sec=(s,h)=>({t:s,h});
+const S=[
+{t:'Probability',h:`<div class=hero><p class=k>Class 11 Mathematics · Probability</p><h1>Probability</h1><h2>Class 1: Events and the Algebra of Events</h2><p class=by>Saheb Sir</p><p style="color:var(--m)">Teacher by choice.</p></div>`,s:vTitle},
+{t:'Today’s Goals',h:C(`<b>In this class we will learn:</b><ul><li>Random experiment, outcome and sample space</li><li>The set ideas we need</li><li>What an event is, and when it occurs</li><li>Impossible, sure, simple and compound events</li><li>not A, A or B, A and B, A but not B</li><li>Mutually exclusive and exhaustive events</li></ul>`)+FM('Big idea: an event is just a <b>set</b>.')},
+{t:'Random Experiment',h:C('<b>Random experiment:</b> an action whose result cannot be predicted in advance, even though all possible results are known.')+C('Examples: tossing a coin, rolling a die, drawing a card from a deck.')+C('<b>Outcome:</b> one possible result of the experiment.')+FM('Know all outcomes · cannot predict which one')+C('Watch the die: the next result is unpredictable.'),s:vExp},
+{t:'Sample Space',h:FM('<b>Sample space S</b> = the set of all possible outcomes')+C('Toss a coin: S = {H, T}. Roll a die: S = {1, 2, 3, 4, 5, 6}.')+C('<b>Order matters:</b> for two coins, HT and TH are different outcomes.')+C('n(S) = number of outcomes in S.'),s:vSS,ctl:{min:0,max:3,v:1,lab:m=>SSN[m]+': n(S) = '+SSP[m].length}},
+{t:'Your Turn: Sample Space',h:Q('<ol><li>A coin is tossed three times. Write S and n(S).</li><li>A die is rolled once. Is 7 an outcome? Write S.</li></ol>')},
+{t:'Sample Space — Answers',h:Q('<ol><li>A coin is tossed three times. Write S and n(S).</li><li>A die is rolled once. Is 7 an outcome? Write S.</li></ol>')+A('1) S = {HHH, HHT, HTH, HTT, THH, THT, TTH, TTT}, n(S) = 8<br>2) S = {1, 2, 3, 4, 5, 6}; 7 is not an outcome')},
+{t:'Set Basics We Need',h:C('<b>Set:</b> a collection of objects. <b>Element:</b> a member. 3 ∈ {1, 2, 3} means “3 belongs to the set”; 5 ∉ means “does not belong”.')+C('<b>Subset:</b> A ⊆ B if every element of A is also in B.')+C('<b>Empty set ∅:</b> no elements. It is a subset of every set.')+C('<b>Universal set:</b> the big set we work inside. Here it is S.')+FM('Each subset of S will be called an <b>event</b>'),s:vSet},
+{t:'Event = Subset of the Sample Space',h:C('Toss a coin twice: S = {HH, HT, TH, TT}.')+C('We want <b>exactly one head</b>. Only HT and TH qualify:<br>E = {HT, TH} ⊆ S.')+FM('<b>Definition:</b> any subset E of S is an <b>event</b>.'),s:vEvent},
+{t:'Events and Their Subsets',h:`<table><tr><th>Event (two coins)</th><th>Subset of S</th></tr><tr><td>Exactly 2 tails</td><td>{TT}</td></tr><tr><td>At least one tail</td><td>{HT, TH, TT}</td></tr><tr><td>At most one head</td><td>{HT, TH, TT}</td></tr><tr><td>Second toss is not head</td><td>{HT, TT}</td></tr><tr><td>At most two tails</td><td>S</td></tr><tr><td>More than two tails</td><td>∅</td></tr></table>`},
+{t:'When Has an Event Occurred?',h:C('Roll a die. E: <b>a number less than 4 appears</b>, so E = {1, 2, 3}.')+FM('E occurs ⇔ the outcome ω ∈ E')+C('Drag the slider to choose the outcome of the roll.'),s:vOcc,ctl:{min:1,max:6,v:2,lab:m=>`Outcome ${m}: ${m<4?'∈ E, so E has occurred':'∉ E, so E has not occurred'}`}},
+{t:'Types of Events',h:C('<b>Impossible event:</b> ∅. Die shows a multiple of 7.')+C('<b>Sure event:</b> S. Die shows odd or even.')+C('<b>Simple event:</b> exactly one sample point. n points give exactly n simple events.')+C('<b>Compound event:</b> more than one point, e.g. exactly one head in 3 tosses = {HTT, THT, TTH}.'),s:vTypes},
+{t:'Algebra of Events',h:C('Events are sets, so we use set operations:')+FM('A′ (not A) · A ∪ B (A or B) · A ∩ B (A and B) · A − B = A ∩ B′')+C('In words: A′ = elements of S not in A · A ∪ B = in A or B or both · A ∩ B = common to both · A − B = in A but not in B.'),s:vAlg,ctl:{min:0,max:5,v:3,lab:m=>'Showing: '+OL[m]}},
+{t:'Example 1: Prime or Odd?',h:C('Die: A = “prime” = {2, 3, 5}, B = “odd” = {1, 3, 5}.')+C('(i) A or B = {1, 2, 3, 5}<br>(ii) A and B = {3, 5}<br>(iii) A but not B = {2}<br>(iv) not A = {1, 4, 6}')+C('Watch the shaded region change with each answer.'),s:vEx1},
+{t:'Your Turn: Algebra of Events',h:Q('<p>Roll a die. A: an even number, B: a number greater than 3.</p><ol><li>Write A and B.</li><li>Find A ∪ B, A ∩ B, A − B and B′.</li></ol>')},
+{t:'Algebra of Events — Answers',h:Q('<p>Roll a die. A: an even number, B: a number greater than 3.</p><ol><li>Write A and B.</li><li>Find A ∪ B, A ∩ B, A − B and B′.</li></ol>')+A('1) A = {2, 4, 6}, B = {4, 5, 6}<br>2) A ∪ B = {2, 4, 5, 6}, A ∩ B = {4, 6}, A − B = {2}, B′ = {1, 2, 3}')},
+{t:'Two Dice: All 36 Outcomes',h:C('Throw a die twice: 6 × 6 = 36 outcomes (i, j).')+C('<b style="color:var(--cy)">A</b>: first throw is six<br><b style="color:#facc15">B</b>: sum is at least 11<br><b style="color:#fb923c">A ∩ B</b> = {(6,5), (6,6)}'),s:vGrid,ctl:{min:0,max:3,v:0,lab:m=>['Sample space S','A: first throw is six','Add B: sum at least 11','A ∩ B: the overlap'][m]}},
+{t:'Mutually Exclusive Events',h:FM('A and B are <b>mutually exclusive</b> if A ∩ B = ∅')+C('Odd {1,3,5} and even {2,4,6}: disjoint, so mutually exclusive.')+C('Odd {1,3,5} and less than 4 {1,2,3}: 1 and 3 are common, so not.')+C('Remark: simple events are always mutually exclusive.'),s:vMe,ctl:{min:5,max:75,v:70,lab:m=>'Slide the circles together and apart: distance '+m}},
+{t:'Exhaustive Events',h:C('Die: A = {1,2,3}, B = {3,4}, C = {5,6}.')+FM('A ∪ B ∪ C = S')+C('<b>Exhaustive:</b> at least one of them must occur whenever the experiment is performed.')+C('If also E<sub>i</sub> ∩ E<sub>j</sub> = ∅ for i ≠ j, they are <b>mutually exclusive and exhaustive</b>.'),s:vExh},
+{t:'Real Life: Exam Result',h:C('A result is exactly one of:<ul><li><b style="color:#fb923c">F</b>: fails</li><li><b style="color:#facc15">D</b>: distinction</li><li><b style="color:var(--cy)">P</b>: passes without distinction</li></ul>')+FM('F ∪ P ∪ D = S and no two overlap')+C('Such events form a <b>partition</b> of S. Also A and A′ always do.'),s:vPie},
+{t:'Spin the Wheel',h:C('A spinner has 8 equal parts: S = {1, …, 8}.')+C('A: even number, B: greater than 5.')+C('Use the slider to shade each combination.'),s:vSpin,ctl:{min:0,max:4,v:2,lab:m=>['A: even = {2, 4, 6, 8}','B: greater than 5 = {6, 7, 8}','A ∩ B = {6, 8}','A ∪ B = {2, 4, 6, 7, 8}','A − B = {2, 4}'][m]}},
+{t:'Chapter Map',h:`<div class=map>${[['Experiment, sample space','Class 1'],['Events and subsets','Class 1'],['Algebra of events','Class 1'],['Axioms of probability','Class 2'],['P(event), equally likely','Class 2']].map(a=>`<div class=card>${a[0]}<small>${a[1]}</small></div>`).join('')}</div>`},
+{t:'Summary',h:`<table><tr><th>Idea</th><th>Meaning</th></tr><tr><td>Random experiment</td><td>result unpredictable, outcomes known</td></tr><tr><td>Sample space S</td><td>set of all outcomes, n(S) = count</td></tr><tr><td>Event</td><td>subset of the sample space S</td></tr><tr><td>Impossible / Sure</td><td>∅ / S</td></tr><tr><td>Simple / Compound</td><td>one point / more than one point</td></tr><tr><td>not A, A or B, A and B, A but not B</td><td>A′, A ∪ B, A ∩ B, A − B</td></tr><tr><td>Mutually exclusive</td><td>A ∩ B = ∅</td></tr><tr><td>Exhaustive</td><td>E<sub>1</sub> ∪ … ∪ E<sub>n</sub> = S</td></tr></table>`},
+{t:'Quick Quiz',h:Q('<ol><li>Die: “a multiple of 7” is what type of event?</li><li>Three coins: how many sample points in “at least one head”?</li><li>Die: A = {1,3,5}, B = {2,4}. Mutually exclusive? Exhaustive?</li><li>Die: the complement of {2, 3, 5}?</li></ol>')},
+{t:'Quick Quiz — Answers',h:Q('<ol><li>Die: “a multiple of 7” is what type of event?</li><li>Three coins: how many sample points in “at least one head”?</li><li>Die: A = {1,3,5}, B = {2,4}. Mutually exclusive? Exhaustive?</li><li>Die: the complement of {2, 3, 5}?</li></ol>')+A('1) Impossible (∅) &nbsp; 2) 7 &nbsp; 3) Mutually exclusive: yes; exhaustive: no, 6 is missing &nbsp; 4) {1, 4, 6}')},
+{t:'Wrap-up and Homework',h:C(`<ul><li>An event is a subset of S; it occurs when the outcome lies in it.</li><li>Combine events with ′, ∪, ∩, −.</li><li>Mutually exclusive: A ∩ B = ∅. Exhaustive: the union is S.</li></ul>`)+FM('<b>Homework:</b> Exercise 14(a), Parts I, II and III.<br>Next class: axioms of probability.')+`<p style="text-align:center;font-size:1.5em;color:var(--cy)">Thank you!</p>`}
+];
+// ---------- engine ----------
+const st=$('stage'),cv=$('cv');g=cv.getContext('2d');const lastM={};
+S.forEach((s,n)=>{const d=document.createElement('section');d.className='slide';
+ const ct=s.ctl?`<div class=card><span class=lb></span><input class=rg type=range min=${s.ctl.min} max=${s.ctl.max} step=1 value=${s.ctl.v}></div>`:'';
+ d.innerHTML=(n?`<h2 class=t>${s.t}</h2>`:'')+(s.s?`<div class="grid v"><div>${s.h}${ct}</div><div class=vh></div></div>`:s.h);st.appendChild(d);
+ const b=document.createElement('button');b.innerHTML=`<b>${n+1}</b><br>${s.t}`;b.onclick=()=>{go(n);$('ov').classList.remove('on')};$('og').appendChild(b)});
+const sl=[...st.children];
+function rd(){const r=sl[i].querySelector('.rg');if(r){M=+r.value;sl[i].querySelector('.lb').textContent=S[i].ctl.lab(M)}}
+sl.forEach(e=>{const r=e.querySelector('.rg');if(r)r.oninput=rd});
+function fit(){const d=devicePixelRatio||1,w=cv.parentElement;cv.width=w.clientWidth*d;cv.height=Math.max(w.clientHeight,260)*d}
+function go(n){i=Math.max(0,Math.min(S.length-1,n));sl.forEach((e,k)=>e.classList.toggle('on',k==i));
+ const vh=sl[i].querySelector('.vh');if(vh){vh.appendChild($('vz'));$('vz').style.display='block';cur=S[i].s;fit()}else{$('vz').style.display='none';cur=null}
+ M=S[i].ctl?S[i].ctl.v:0;const r=sl[i].querySelector('.rg');if(r)r.value=M;rd();
+ $('ct').textContent=`${i+1} / ${S.length}`;document.querySelector('#bar i').style.width=(i+1)/S.length*100+'%';
+ $('ar').hidden=!sl[i].querySelector('.ans');location.hash=i+1}
+onresize=fit;
+function draw(){T+=1/60;if(cur){const W=cv.width,H=cv.height,s=Math.min(W/400,H/300);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);g.setTransform(s,0,0,s,(W-400*s)/2,(H-300*s)/2);cur()}requestAnimationFrame(draw)}
+$('pv').onclick=()=>go(i-1);$('nx').onclick=()=>go(i+1);$('hm').onclick=()=>$('ov').classList.toggle('on');
+const tf=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
+$('fs').onclick=tf;$('ar').onclick=()=>{const h=document.body.classList.toggle('noans');$('ar').textContent=h?'Show answers':'Hide answers'};
+onkeydown=e=>{const k=e.key;if(e.target.type=='range'&&(k=='ArrowLeft'||k=='ArrowRight'))return;if(k=='ArrowRight'||k=='PageDown'||k==' ')go(i+1);else if(k=='ArrowLeft'||k=='PageUp')go(i-1);else if(k=='Home')go(0);else if(k=='End')go(S.length-1);else if(k=='f'||k=='F')tf();else if(k=='o'||k=='O')$('ov').classList.toggle('on');else if(k=='r'||k=='R')$('ar').click();else if(k=='Escape')$('ov').classList.remove('on');if(k==' ')e.preventDefault()};
+let tx0=null;st.ontouchstart=e=>tx0=e.touches[0].clientX;st.ontouchend=e=>{if(tx0==null||e.target.type=='range')return;const d=e.changedTouches[0].clientX-tx0;if(Math.abs(d)>60)go(i+(d<0?1:-1));tx0=null};
+go((parseInt(location.hash.slice(1))||1)-1);draw();
+</script></body></html>
